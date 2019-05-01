@@ -12,12 +12,15 @@
 import * as tf from '@tensorflow/tfjs';
 import callCallback from '../utils/callcallback';
 
+const MIN_TIME = 200; // ms
+
 class PitchDetection {
   constructor(model, audioContext, stream, callback) {
     this.model = model;
     this.audioContext = audioContext;
     this.stream = stream;
     this.frequency = null;
+    this.lastProcess = null;
     this.ready = callCallback(this.loadModel(model), callback);
   }
 
@@ -55,6 +58,16 @@ class PitchDetection {
 
   async processMicrophoneBuffer(event) {
     await tf.nextFrame();
+    console.log('Processing audio buffer');
+    if (this.lastProcess && Date.now() - this.lastProcess < MIN_TIME) {
+      console.log('Processing audio buffer pass ');
+      return;
+    }
+
+    console.log('stam', Date.now() - this.lastProcess, this.lastProcess);
+
+    this.lastProcess = Date.now();
+
     this.results = {};
     const centMapping = tf.add(tf.linspace(0, 7180, 360), tf.tensor(1997.3794084376191));
     PitchDetection.resample(event.inputBuffer, (resampled) => {
